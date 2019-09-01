@@ -1,13 +1,20 @@
 package com.playgilround.schedule.client.signup
 
 import android.content.Context
+import android.util.Log
 import com.google.gson.JsonObject
 import com.playgilround.schedule.client.ScheduleApplication
 import com.playgilround.schedule.client.data.User
+import com.playgilround.schedule.client.data.repository.UsersRepository
+import com.playgilround.schedule.client.model.BaseResponse
 import com.playgilround.schedule.client.retrofit.APIClient
 import com.playgilround.schedule.client.retrofit.UserAPI
 import com.playgilround.schedule.client.signup.model.UserDataModel
 import com.playgilround.schedule.client.signup.view.SignUpAdapter
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.observers.DisposableSingleObserver
+import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -22,6 +29,11 @@ class SignUpPresenter constructor(mContext: Context, private val mView: SignUpCo
 
     @Inject
     internal lateinit var mUser: User
+
+    @Inject
+    internal lateinit var mUserRepository: UsersRepository
+    private val mCompositeDisposable = CompositeDisposable()
+
 
     init {
         mView.setPresenter(this)
@@ -43,7 +55,8 @@ class SignUpPresenter constructor(mContext: Context, private val mView: SignUpCo
 
             SignUpAdapter.TYPE_EMAIL -> {
                 mUser.email = mUserDataModel.getEmailField()
-                check = validateEmail(mUser.email)
+                check = mUser.email != null
+//                check = validateEmail(mUser.email)
             }
 
             SignUpAdapter.TYPE_PASSWORD -> {
@@ -58,7 +71,9 @@ class SignUpPresenter constructor(mContext: Context, private val mView: SignUpCo
 
             SignUpAdapter.TYPE_NICK_NAME -> {
                 mUser.nickname = mUserDataModel.getNicknameField()
-                check = validateNickName(mUser.nickname)
+                check = mUser.nickname != null
+
+//                check = validateNickName(mUser.nickname)
             }
 
             SignUpAdapter.TYPE_BIRTH -> {
@@ -109,27 +124,26 @@ class SignUpPresenter constructor(mContext: Context, private val mView: SignUpCo
     }
 
     override fun signUp() {
-        //추후 Disposable (rx) 변경 예정
-        val retrofit = APIClient.getClient()
-        val userAPI = retrofit.create(UserAPI::class.java)
+        if (mUser.password == mUser.password2) {
+            mUser.password = User.base64Encoding(mUser.password)
+            Log.d("TEST", "signUp password ->${mUser.password}")
+        }
+        val disposable = mUserRepository.register(
+                mUser.username, mUser.nickname, mUser.email, mUser.password, mUser.birth, mUser.language)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(object :DisposableSingleObserver<BaseResponse<String>>() {
+                    override fun onSuccess(t: BaseResponse<String>) {
+                        Log.d("SignUp", "onSuccess Disposable")
+                        mView.signUpComplete()
+                    }
 
-        mUser.password = User.base64Encoding(mUser.password)
-        mUser.password2 = User.base64Encoding(mUser.password2)
-
-        val jsonObject = JsonObject()
-        val userJson = JsonObject()
-
-        userJson.addProperty("username", mUser.username)
-        userJson.addProperty("nickname", mUser.nickname)
-        userJson.addProperty("email", mUser.email)
-        userJson.addProperty("password", mUser.password)
-        userJson.addProperty("password2", mUser.password2)
-
-        jsonObject.add("user", userJson)
-        jsonObject.addProperty("birth", mUser.birth)
-        jsonObject.addProperty("language", mUser.language)
-
-        mView.signUpComplete()
+                    override fun onError(e: Throwable) {
+                        Log.d("SignUp", "onError Disposable")
+                        mView.signUpError(ERROR_SIGN_UP)
+                    }
+                })
+        mCompositeDisposable.add(disposable)
         /*userAPI.signUp(jsonObject).enqueue(new Callback<ResponseMessage>() {
           @Override
           public void onResponse(Call<ResponseMessage> call, Response<ResponseMessage> response) {

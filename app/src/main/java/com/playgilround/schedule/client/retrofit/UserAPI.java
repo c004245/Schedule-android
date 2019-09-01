@@ -1,8 +1,12 @@
 package com.playgilround.schedule.client.retrofit;
 
 import com.google.gson.JsonObject;
+import com.playgilround.schedule.client.model.BaseResponse;
 import com.playgilround.schedule.client.model.ResponseMessage;
 
+import java.util.HashMap;
+
+import io.reactivex.Single;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
@@ -12,9 +16,11 @@ import retrofit2.http.Query;
 
 public interface UserAPI {
 
-    @Headers({"Content-Type: application/json"})
+//    @Headers({"Content-Type: application/json"})
+//    @POST(BaseUrl.PATH_SIGN_UP)
+//    Call<ResponseMessage> signUp(@Body JsonObject user);
     @POST(BaseUrl.PATH_SIGN_UP)
-    Call<ResponseMessage> signUp(@Body JsonObject user);
+    Single<BaseResponse<String>> register(@Body HashMap map);
 
     @Headers({"Content-Type: application/json"})
     @POST(BaseUrl.PATH_EMAIL_SIGN_IN)

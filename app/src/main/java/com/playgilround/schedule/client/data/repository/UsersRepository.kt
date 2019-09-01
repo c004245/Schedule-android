@@ -8,6 +8,9 @@ import com.nhn.android.naverlogin.OAuthLogin
 import com.playgilround.schedule.client.data.User
 import com.playgilround.schedule.client.data.source.UsersDataSource
 import com.playgilround.schedule.client.data.source.network.UsersRemoteDataSource
+import com.playgilround.schedule.client.model.BaseResponse
+import io.reactivex.Single
+import java.util.*
 
 class UsersRepository(
         private val usersLocalDataSource: UsersDataSource,
@@ -47,6 +50,15 @@ class UsersRepository(
 
     override fun firebaseAuthGoogle(data: Intent, loginCallBack: UsersDataSource.LoginCallBack) {
         usersRemoteDataSource.firebaseAuthGoogle(data, loginCallBack)
+    }
+
+    override fun register(userName: String,
+                          nickName: String,
+                          email: String,
+                          password: String,
+                          birth: String,
+                          language: String): Single<BaseResponse<String>> {
+        return usersRemoteDataSource.register(userName, nickName, email, password, birth, language)
     }
 
 }

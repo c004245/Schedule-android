@@ -29,6 +29,7 @@ import com.nhn.android.naverlogin.OAuthLoginHandler
 import com.playgilround.schedule.client.R
 import com.playgilround.schedule.client.data.User
 import com.playgilround.schedule.client.data.source.UsersDataSource
+import com.playgilround.schedule.client.model.BaseResponse
 import com.playgilround.schedule.client.retrofit.APIClient
 import com.playgilround.schedule.client.retrofit.BaseUrl
 import com.playgilround.schedule.client.retrofit.RestAuthAPI
@@ -37,6 +38,8 @@ import com.playgilround.schedule.client.signin.SignInPresenter.Companion.ERROR_E
 import com.playgilround.schedule.client.signin.SignInPresenter.Companion.ERROR_FAIL_SIGN_IN
 import com.playgilround.schedule.client.signin.SignInPresenter.Companion.ERROR_NETWORK_CUSTOM
 import com.playgilround.schedule.client.signin.SignInPresenter.Companion.ERROR_PASSWORD
+import com.playgilround.schedule.client.util.HttpUtils
+import io.reactivex.Single
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -44,13 +47,15 @@ import java.util.*
 import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.HashMap
 
 @Singleton
-class UsersRemoteDataSource @Inject constructor(val context: Context) : UsersDataSource, UsersDataSource.SNSLogin {
+class UsersRemoteDataSource @Inject constructor(val context: Context, private val mHttpUtils: HttpUtils) : UsersDataSource, UsersDataSource.SNSLogin {
 
     private lateinit var auth: FirebaseAuth
     private lateinit var googleSignInClient: GoogleSignInClient
     private var isKakaoLogin = false
+    private var userAPI: UserAPI? = null
 
     override fun login(email: String, password: String, loginCallBack: UsersDataSource.LoginCallBack) {
         if (checkEmail(email)) {
@@ -138,6 +143,23 @@ class UsersRemoteDataSource @Inject constructor(val context: Context) : UsersDat
         })
     }
 
+    override fun register(userName: String, nickName: String, email: String, password: String, birth: String, language: String): Single<BaseResponse<String>> {
+        Log.d("SignUp", "register DataSource")
+
+        val userMap = HashMap<String, Any>()
+        val map = HashMap<String, Any>()
+        userMap["userName"] = userName
+        userMap["nickName"] = nickName
+        userMap["email"] = email
+        userMap["password"] = password
+        map["user"] = userMap
+        map["birth"] = birth
+        map["language"] = language
+
+        Log.d("SignUp", "onSuccess DataSource ->$map")
+
+        return getUserAPIInfo()!!.register(map)
+    }
     override fun facebookLogin(activity: Activity, loginCallBack: UsersDataSource.LoginCallBack): CallbackManager {
         val callbackManager = CallbackManager.Factory.create()
         var accessToken: String
@@ -392,6 +414,13 @@ class UsersRemoteDataSource @Inject constructor(val context: Context) : UsersDat
         const val LOGIN_TYPE_NAVER = 0x0002
         const val LOGIN_TYPE_KAKAO = 0x0003
         const val LOGIN_TYPE_GOOGLE = 0x0004
+    }
+
+    fun getUserAPIInfo(): UserAPI? {
+        if (null == userAPI) {
+            userAPI = mHttpUtils.getRetrofitKey()!!.create(UserAPI::class.java)
+        }
+        return userAPI
     }
 
 }

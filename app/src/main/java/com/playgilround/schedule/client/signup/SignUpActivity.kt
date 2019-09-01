@@ -137,5 +137,8 @@ class SignUpActivity: AppCompatActivity(), SignUpContract.View {
         mPresenter = presenter
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+    }
 
 }

@@ -8,6 +8,8 @@ import com.facebook.CallbackManager
 import com.google.gson.Gson
 import com.nhn.android.naverlogin.OAuthLogin
 import com.playgilround.schedule.client.data.User
+import com.playgilround.schedule.client.model.BaseResponse
+import io.reactivex.Single
 
 interface UsersDataSource {
 
@@ -35,6 +37,13 @@ interface UsersDataSource {
     fun login(email: String, password: String, loginCallBack: LoginCallBack)
 
     fun tokenLogin(loginCallBack: LoginCallBack)
+
+    fun register(userName: String,
+                 nickName: String,
+                 email: String,
+                 password: String,
+                 birth: String,
+                 language: String): Single<BaseResponse<String>>
 
     interface SNSLogin {
         fun facebookLogin(activity: Activity, loginCallBack: LoginCallBack): CallbackManager
